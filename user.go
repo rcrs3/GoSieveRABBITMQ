@@ -3,7 +3,6 @@ package main
 import (
         "fmt"
         "log"
-        "strconv"
         "github.com/streadway/amqp"
 )
 
@@ -47,12 +46,8 @@ func producer(queueName string, msg string) {
 
         createQueue(queueName)
 
-        cont := 1
         for {
-                if cont > 200 {
-                        break;
-                }
-                body := msg + strconv.Itoa(cont)
+                body := msg
                 err = ch.Publish(
                         "", // exchange
                         queueName,     // routing key
@@ -63,7 +58,6 @@ func producer(queueName string, msg string) {
                                 Body:        []byte(body),
                         })
                 failOnError(err, "Failed to publish a message")
-                cont++
                 log.Printf(" [x] Sent %s", body)
         }
 }
@@ -88,21 +82,21 @@ func consumer(queueName string) {
         )
         failOnError(err, "Failed to register a consumer")
 
-        forever := make(chan bool)
-
         go func() {
                 
                 for d := range msgs {
                         log.Printf(" [x] Received %s", d.Body)
                 }
         }()
-
-        <-forever
 }
 
 func main() {
         go producer("client2", "Olá")
         go producer("client1", "Oi")
+        
         go consumer("client1")
-        consumer("client2")
+        go consumer("client2")
+        
+        forever := make(chan bool)
+        <-forever
 }
